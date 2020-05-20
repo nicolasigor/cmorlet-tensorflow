@@ -5,4 +5,4 @@ A TensorFlow implementation of the Continuous Wavelet Transform obtained via the
 This module was used to obtain the CWT of EEG signals for the RED-CWT model, described in:
 
 N.I. Tapia and P.A. Estévez, "RED: Deep Recurrent Neural Networks for Sleep EEG Event Detection," in *2020 International Joint Conference on Neural Networks (IJCNN)*.
-Full Text available at: https://arxiv.org/abs/2005.07795
+Full text available at: https://arxiv.org/abs/2005.07795
