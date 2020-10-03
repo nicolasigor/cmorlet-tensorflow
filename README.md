@@ -6,7 +6,8 @@ This implementation is aimed to leverage GPU acceleration for the computation of
 
 This module was used to obtain the CWT of EEG signals for the RED-CWT model, described in:
 
-N.I. Tapia and P.A. Estévez, "RED: Deep Recurrent Neural Networks for Sleep EEG Event Detection," in *2020 International Joint Conference on Neural Networks (IJCNN)*.
+N. I. Tapia and P. A. Estévez, "RED: Deep Recurrent Neural Networks for Sleep EEG Event Detection," *2020 International Joint Conference on Neural Networks (IJCNN)*, Glasgow, United Kingdom, 2020, pp. 1-8, doi: 10.1109/IJCNN48605.2020.9207719.
+
 Full text available at: https://arxiv.org/abs/2005.07795
 
 If you find this software useful, please consider citing our work.
