@@ -2,7 +2,7 @@
 
 A TensorFlow implementation of the Continuous Wavelet Transform obtained via the complex Morlet wavelet. Please see the demo Jupyter Notebook for usage demonstration and more implementation details. 
 
-This implementation is aimed to leverage GPU acceleration for the computation of the CWT in TensorFlow models. The morlet's wavelet width can be set as a trainable parameter if you want to adjust it via backprop. Please note that this implementation was made before TensorFlow 2, so you need TensorFlow 1 (i.e. tf 1.x).
+This implementation is aimed to leverage GPU acceleration for the computation of the CWT in TensorFlow models. The morlet's wavelet width can be set as a trainable parameter if you want to adjust it via backprop. This implementation now supports  TensorFlow 2.
 
 This module was used to obtain the CWT of EEG signals for the RED-CWT model, described in:
 
