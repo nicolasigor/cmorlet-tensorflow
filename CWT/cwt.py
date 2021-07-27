@@ -9,7 +9,7 @@ import tensorflow as tf
 
 class ContinuousWaveletTransform(object):
     """CWT layer implementation in Tensorflow for GPU acceleration."""
-    def __init__(self, n_scales, border_crop=0, stride=1, name="cwt"):
+    def __init__(self, n_scales, border_crop=0, stride=1, name="cwt", output='Complex' ):
         """
         Args:
             n_scales: (int) Number of scales for the scalogram.
@@ -25,6 +25,7 @@ class ContinuousWaveletTransform(object):
         self.border_crop = border_crop
         self.stride = stride
         self.name = name
+        self.output = output
         self.real_part, self.imaginary_part = self._build_wavelet_bank()
 
     def _build_wavelet_bank(self):
@@ -74,13 +75,19 @@ class ContinuousWaveletTransform(object):
                 strides=[1, 1, self.stride, 1], padding="SAME")
             out_real_crop = out_real[:, :, start:end, :]
             out_imag_crop = out_imag[:, :, start:end, :]
-            out_concat = tf.concat(
-                [out_real_crop, out_imag_crop], axis=1)
-            # [batch, 2, time, n_scales]->[batch, time, n_scales, 2]
+            out_mag_crop = tf.sqrt(out_real_crop**2 + out_imag_crop**2)
+            
+            if self.output == 'Magnitude':
+                out_concat = out_mag_crop
+            else:
+                out_concat = tf.concat([out_real_crop, out_imag_crop], axis=1)
+            
+            # [batch, :, time, n_scales]->[batch, time, n_scales, :]
             single_scalogram = tf.transpose(
                 a=out_concat, perm=[0, 2, 3, 1])
             multi_channel_cwt.append(single_scalogram)
             # Get all in shape [batch, time_len, n_scales, 2*n_channels]
+            # or if output='Magnitude [batch, time_len, n_scales, 2*n_channels]
             scalograms = tf.concat(multi_channel_cwt, -1)
         return scalograms
 
@@ -98,6 +105,7 @@ class ComplexMorletCWT(ContinuousWaveletTransform):
             trainable=False,
             border_crop=0,
             stride=1,
+            output='Complex' ,
             name="cwt"):
         """
         Computes the complex morlet wavelets
@@ -156,6 +164,9 @@ class ComplexMorletCWT(ContinuousWaveletTransform):
             raise ValueError("lower_freq should be lower than upper_freq")
         if lower_freq < 0:
             raise ValueError("Expected positive lower_freq.")
+        if output not in ['Complex', 'Magnitude']:
+            raise ValueError("Expected output to be 'Complex' or 'Magnitude'.")
+            
 
         self.initial_wavelet_width = wavelet_width
         self.fs = fs
@@ -177,7 +188,7 @@ class ComplexMorletCWT(ContinuousWaveletTransform):
             trainable=self.trainable,
             name='wavelet_width',
             dtype=tf.float32)
-        super().__init__(n_scales, border_crop, stride, name)
+        super().__init__(n_scales, border_crop, stride, name, output)
 
     def _build_wavelet_bank(self):
         # Generate the wavelets
