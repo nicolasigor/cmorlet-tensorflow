@@ -10,7 +10,7 @@ from keras.layers import Layer
 
 class ContinuousWaveletTransform(Layer):
     """CWT layer implementation in Tensorflow for GPU acceleration."""
-    def __init__(self, n_scales, border_crop=0, stride=1, name=name,
+    def __init__(self, n_scales, border_crop=0, stride=1, name='CWT',
                  outputformat='Complex',  data_format='channels_last' ):
         """
         Args:
@@ -102,7 +102,7 @@ class ComplexMorletCWT(ContinuousWaveletTransform):
             trainable=False,
             border_crop=0,
             stride=1,
-            name=name,
+            name='ComplexMorletCWT',
             output='complex',
             data_format='channels_last'):
         """
