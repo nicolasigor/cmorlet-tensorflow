@@ -10,7 +10,8 @@ from keras.layers import Layer
 
 class ContinuousWaveletTransform(Layer):
     """CWT layer implementation in Tensorflow for GPU acceleration."""
-    def __init__(self, n_scales, border_crop=0, stride=1,  outputformat='Complex',  data_format='channels_last' ):
+    def __init__(self, n_scales, border_crop=0, stride=1, name=name,
+                 outputformat='Complex',  data_format='channels_last' ):
         """
         Args:
             n_scales: (int) Number of scales for the scalogram.
@@ -21,7 +22,7 @@ class ContinuousWaveletTransform(Layer):
             stride: (int) The stride of the sliding window across the input.
                 Default is 1.
         """
-        super(ContinuousWaveletTransform, self).__init__()
+        super(ContinuousWaveletTransform, self).__init__(name=name)
         self.n_scales = n_scales
         self.border_crop = border_crop
         self.stride = stride
@@ -101,6 +102,7 @@ class ComplexMorletCWT(ContinuousWaveletTransform):
             trainable=False,
             border_crop=0,
             stride=1,
+            name=name,
             output='complex',
             data_format='channels_last'):
         """
@@ -186,7 +188,7 @@ class ComplexMorletCWT(ContinuousWaveletTransform):
             trainable=self.trainable,
             name='wavelet_width',
             dtype=tf.float32)
-        super().__init__(n_scales, border_crop, stride, output, data_format)
+        super().__init__(n_scales, border_crop, stride, name, output, data_format)
 
     def _build_wavelet_bank(self):
         # Generate the wavelets
