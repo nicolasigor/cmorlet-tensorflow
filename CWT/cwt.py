@@ -6,11 +6,15 @@ from __future__ import print_function
 
 import numpy as np
 import tensorflow as tf
+<<<<<<< HEAD
 import keras
+=======
+from keras.layers import Layer
+>>>>>>> Keras-Layer
 
-class ContinuousWaveletTransform(object):
+class ContinuousWaveletTransform(Layer):
     """CWT layer implementation in Tensorflow for GPU acceleration."""
-    def __init__(self, n_scales, border_crop=0, stride=1, name="cwt", output='Complex' ):
+    def __init__(self, n_scales, border_crop=0, stride=1,  outputformat='Complex' ):
         """
         Args:
             n_scales: (int) Number of scales for the scalogram.
@@ -20,13 +24,12 @@ class ContinuousWaveletTransform(object):
                 desired size to remove border effects of the CWT. Default 0.
             stride: (int) The stride of the sliding window across the input.
                 Default is 1.
-            name: (string) A name for the op. Default "cwt".
         """
+        super(ContinuousWaveletTransform, self).__init__()
         self.n_scales = n_scales
         self.border_crop = border_crop
         self.stride = stride
-        self.name = name
-        self.output = output
+        self.outputformat = outputformat
         self.real_part, self.imaginary_part = self._build_wavelet_bank()
 
     def _build_wavelet_bank(self):
@@ -38,7 +41,7 @@ class ContinuousWaveletTransform(object):
         return real_part, imaginary_part
     
     @tf.function
-    def __call__(self, inputs):
+    def call(self, inputs):
         """
         Computes the CWT with the specified wavelet bank.
         If the signal has more than one channel, the CWT is computed for
@@ -78,7 +81,7 @@ class ContinuousWaveletTransform(object):
             out_imag_crop = out_imag[:, :, start:end, :]
             out_mag_crop = tf.sqrt(out_real_crop**2 + out_imag_crop**2)
             
-            if self.output == 'Magnitude':
+            if self.outputformat == 'Magnitude':
                 out_concat = out_mag_crop
             else:
                 out_concat = tf.concat([out_real_crop, out_imag_crop], axis=1)
@@ -106,8 +109,7 @@ class ComplexMorletCWT(ContinuousWaveletTransform):
             trainable=False,
             border_crop=0,
             stride=1,
-            output='Complex' ,
-            name="cwt"):
+            output='Complex'):
         """
         Computes the complex morlet wavelets
 
@@ -157,7 +159,6 @@ class ComplexMorletCWT(ContinuousWaveletTransform):
                 desired size to remove border effects of the CWT. Default 0.
             stride: (int) The stride of the sliding window across the input.
                 Default is 1.
-            name: (string) A name for the op. Default "cwt".
         """
 
         # Checking
@@ -189,7 +190,7 @@ class ComplexMorletCWT(ContinuousWaveletTransform):
             trainable=self.trainable,
             name='wavelet_width',
             dtype=tf.float32)
-        super().__init__(n_scales, border_crop, stride, name, output)
+        super().__init__(n_scales, border_crop, stride, output)
 
     def _build_wavelet_bank(self):
         # Generate the wavelets
