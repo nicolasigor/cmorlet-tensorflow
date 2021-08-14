@@ -14,7 +14,8 @@ from keras.layers import Layer
 
 class ContinuousWaveletTransform(Layer):
     """CWT layer implementation in Tensorflow for GPU acceleration."""
-    def __init__(self, n_scales, border_crop=0, stride=1,  outputformat='Complex' ):
+    def __init__(self, n_scales, border_crop=0, stride=1, name='CWT',
+                 outputformat='Complex',  data_format='channels_last' ):
         """
         Args:
             n_scales: (int) Number of scales for the scalogram.
@@ -25,11 +26,12 @@ class ContinuousWaveletTransform(Layer):
             stride: (int) The stride of the sliding window across the input.
                 Default is 1.
         """
-        super(ContinuousWaveletTransform, self).__init__()
+        super(ContinuousWaveletTransform, self).__init__(name=name)
         self.n_scales = n_scales
         self.border_crop = border_crop
         self.stride = stride
         self.outputformat = outputformat
+        self.data_format = data_format
         self.real_part, self.imaginary_part = self._build_wavelet_bank()
 
     def _build_wavelet_bank(self):
@@ -58,41 +60,36 @@ class ContinuousWaveletTransform(Layer):
         """
 
         # Generate the scalogram
-        border_crop = int(self.border_crop / self.stride)
+        border_crop = self.border_crop // self.stride #int(self.border_crop / self.stride)
         start = border_crop
         end = (-border_crop) if (border_crop > 0) else None
-        # Input has expected shape of [batch_size, time_len, n_channels]
-        # We first unstack the input channels
-        inputs_unstacked = tf.unstack(inputs, axis=2)
-        multi_channel_cwt = []
-        for j, single_channel in enumerate(inputs_unstacked):
-            # Reshape input [batch, time_len] -> [batch, 1, time_len, 1]
-            inputs_expand = tf.expand_dims(single_channel, axis=1)
-            inputs_expand = tf.expand_dims(inputs_expand, axis=3)
-            bank_real = self.real_part
-            bank_imag = -self.imaginary_part  # Conjugation
-            out_real = tf.nn.conv2d(
-                input=inputs_expand, filters=bank_real,
-                strides=[1, 1, self.stride, 1], padding="SAME")
-            out_imag = tf.nn.conv2d(
-                input=inputs_expand, filters=bank_imag,
-                strides=[1, 1, self.stride, 1], padding="SAME")
-            out_real_crop = out_real[:, :, start:end, :]
-            out_imag_crop = out_imag[:, :, start:end, :]
-            out_mag_crop = tf.sqrt(out_real_crop**2 + out_imag_crop**2)
+        
+        if self.data_format == 'channels_last' :
+            inputs = tf.transpose(a=inputs, perm=[0, 2, 1]) # [batch, time_len, n_channels] -> [batch, n_channels,  time_len]
+        
+        # [batch, n_channels,  time_len] -> [batch, n_channel, 1, time_len, 1]
+        inputs_expand = tf.expand_dims(inputs, axis=2)
+        inputs_expand = tf.expand_dims(inputs_expand, axis=4)
+
+        out_real = tf.nn.conv2d(
+            input=inputs_expand, filters=self.real_part,
+            strides=[1, 1, self.stride, 1], padding="SAME")
+        out_imag = tf.nn.conv2d(
+            input=inputs_expand, filters=-self.imaginary_part,
+            strides=[1, 1, self.stride, 1], padding="SAME")
+       
+        #Crop and drop redundant axis to create [batch, n_channels, time, n_scales)]
+        out_real = out_real[:, :, 0, start:end, :]
+        out_imag = out_imag[:, :, 0, start:end, :]
+
+        if self.outputformat == 'magnitude':
+            scalograms = tf.sqrt(out_real**2 + out_imag**2)  # magnitude [batch, n_channels, time, n_scales)]
+        else:
+            scalograms = tf.concat([out_real, out_imag], axis=1) # complex [batch, 2*n_channels, time, n_scales)]
+
+        if self.data_format == 'channels_last' :
+            scalograms = tf.transpose(a=scalograms, perm=[0, 2, 3, 1]) #[batch, time, n_scales, channels]
             
-            if self.outputformat == 'Magnitude':
-                out_concat = out_mag_crop
-            else:
-                out_concat = tf.concat([out_real_crop, out_imag_crop], axis=1)
-            
-            # [batch, :, time, n_scales]->[batch, time, n_scales, :]
-            single_scalogram = tf.transpose(
-                a=out_concat, perm=[0, 2, 3, 1])
-            multi_channel_cwt.append(single_scalogram)
-            # Get all in shape [batch, time_len, n_scales, 2*n_channels]
-            # or if output='Magnitude [batch, time_len, n_scales, 2*n_channels]
-            scalograms = tf.concat(multi_channel_cwt, -1)
         return scalograms
 
 
@@ -109,7 +106,9 @@ class ComplexMorletCWT(ContinuousWaveletTransform):
             trainable=False,
             border_crop=0,
             stride=1,
-            output='Complex'):
+            name='ComplexMorletCWT',
+            output='complex',
+            data_format='channels_last'):
         """
         Computes the complex morlet wavelets
 
@@ -166,8 +165,11 @@ class ComplexMorletCWT(ContinuousWaveletTransform):
             raise ValueError("lower_freq should be lower than upper_freq")
         if lower_freq < 0:
             raise ValueError("Expected positive lower_freq.")
-        if output not in ['Complex', 'Magnitude']:
-            raise ValueError("Expected output to be 'Complex' or 'Magnitude'.")
+        if output not in ['complex', 'magnitude']:
+            raise ValueError("Expected output to be 'complex' or 'magnitude'.")
+        if data_format not in ['channels_last', 'channels_first']:
+            raise ValueError("Expected output to be 'channels_last' or 'channels_first'.")
+            
             
 
         self.initial_wavelet_width = wavelet_width
@@ -190,7 +192,7 @@ class ComplexMorletCWT(ContinuousWaveletTransform):
             trainable=self.trainable,
             name='wavelet_width',
             dtype=tf.float32)
-        super().__init__(n_scales, border_crop, stride, output)
+        super().__init__(n_scales, border_crop, stride, name, output, data_format)
 
     def _build_wavelet_bank(self):
         # Generate the wavelets
