@@ -37,7 +37,7 @@ class ContinuousWaveletTransform(Layer):
         real_part = None
         imaginary_part = None
         return real_part, imaginary_part
-    
+
     @tf.function
     def call(self, inputs):
         """
@@ -59,10 +59,10 @@ class ContinuousWaveletTransform(Layer):
         border_crop = self.border_crop // self.stride #int(self.border_crop / self.stride)
         start = border_crop
         end = (-border_crop) if (border_crop > 0) else None
-        
+
         if self.data_format == 'channels_last' :
             inputs = tf.transpose(a=inputs, perm=[0, 2, 1]) # [batch, time_len, n_channels] -> [batch, n_channels,  time_len]
-        
+
         # [batch, n_channels,  time_len] -> [batch, n_channel, 1, time_len, 1]
         inputs_expand = tf.expand_dims(inputs, axis=2)
         inputs_expand = tf.expand_dims(inputs_expand, axis=4)
@@ -73,19 +73,21 @@ class ContinuousWaveletTransform(Layer):
         out_imag = tf.nn.conv2d(
             input=inputs_expand, filters=-self.imaginary_part,
             strides=[1, 1, self.stride, 1], padding="SAME")
-       
+
         #Crop and drop redundant axis to create [batch, n_channels, time, n_scales)]
         out_real = out_real[:, :, 0, start:end, :]
         out_imag = out_imag[:, :, 0, start:end, :]
 
         if self.outputformat == 'magnitude':
             scalograms = tf.sqrt(out_real**2 + out_imag**2)  # magnitude [batch, n_channels, time, n_scales)]
+        elif self.outputformat == 'phase':
+            scalograms = tf.math.atan2(out_imag, out_real)  # phase [batch, n_channels, time, n_scales)]
         else:
             scalograms = tf.concat([out_real, out_imag], axis=1) # complex [batch, 2*n_channels, time, n_scales)]
 
         if self.data_format == 'channels_last' :
             scalograms = tf.transpose(a=scalograms, perm=[0, 2, 3, 1]) #[batch, time, n_scales, channels]
-            
+
         return scalograms
 
 
@@ -161,12 +163,12 @@ class ComplexMorletCWT(ContinuousWaveletTransform):
             raise ValueError("lower_freq should be lower than upper_freq")
         if lower_freq < 0:
             raise ValueError("Expected positive lower_freq.")
-        if output not in ['complex', 'magnitude']:
-            raise ValueError("Expected output to be 'complex' or 'magnitude'.")
+        if output not in ['complex', 'magnitude', 'phase']:
+            raise ValueError("Expected output to be 'complex', 'magnitude' or 'phase'.")
         if data_format not in ['channels_last', 'channels_first']:
             raise ValueError("Expected output to be 'channels_last' or 'channels_first'.")
-            
-            
+
+
 
         self.initial_wavelet_width = wavelet_width
         self.fs = fs
