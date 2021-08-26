@@ -190,7 +190,7 @@ class ComplexMorletCWT(ContinuousWaveletTransform):
             trainable=self.trainable,
             name='wavelet_width',
             dtype=tf.float32)
-        super(ComplexMorletCWT).__init__(n_scales, border_crop, stride, name, output, data_format)
+        super().__init__(n_scales, border_crop, stride, name, output, data_format)
 
     def _build_wavelet_bank(self):
         # Generate the wavelets
