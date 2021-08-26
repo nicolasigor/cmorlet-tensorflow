@@ -6,7 +6,7 @@ from __future__ import print_function
 
 import numpy as np
 import tensorflow as tf
-from keras.layers import Layer
+from tensorflow.keras.layers import Layer
 
 class ContinuousWaveletTransform(Layer):
     """CWT layer implementation in Tensorflow for GPU acceleration."""
